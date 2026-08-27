@@ -6,6 +6,7 @@ import random
 import sys
 import time
 import tkinter as tk
+from datetime import datetime
 from tkinter import messagebox
 from pathlib import Path
 
@@ -54,6 +55,7 @@ DEFAULTS = {
     "veena_interval_max_seconds": 480,
     "deep_sleep_interval_min_seconds": 870,
     "deep_sleep_interval_max_seconds": 930,
+    "startup_greeting_seconds": 10,
 }
 
 STATE_ROWS = {
@@ -138,12 +140,10 @@ class GaneshaCompanion:
         self.frame_index = 0
         self.wave_requested = False
         self.exit_requested = False
-        self.started_at = time.monotonic()
-        # Independent clocks ensure that frequent reading cannot suppress the
-        # mouse, yoga, or ladoo scenes through a shared random cooldown.
+        self.started_at = None
+        # Activity clocks begin only after the startup blessing has finished,
+        # so the greeting never consumes time from the approved schedules.
         self.next_activity_at = {}
-        for activity in ("reading", "mouse", "yoga", "ladoo", "veena", "deep_sleep"):
-            self._schedule_activity(activity, self.started_at)
         self.pending_after_special = None
         self.drag_start_pointer = None
         self.drag_start_window = None
@@ -163,6 +163,64 @@ class GaneshaCompanion:
         self.menu.add_separator()
         self.menu.add_command(label="Exit My Ganesha", command=self._request_exit)
 
+        self._show_startup_greeting()
+
+    def _show_startup_greeting(self) -> None:
+        hour = datetime.now().hour
+        if hour < 12:
+            salutation = "Good morning"
+        elif hour < 17:
+            salutation = "Good afternoon"
+        else:
+            salutation = "Good evening"
+
+        self.canvas.itemconfigure(self.item, image=self.frames["idle"][0])
+        self.greeting = tk.Toplevel(self.root)
+        self.greeting.overrideredirect(True)
+        self.greeting.attributes("-topmost", True)
+        self.greeting.configure(bg="#6f4a20")
+
+        message = (
+            f"{salutation}, Praveen!\n\n"
+            "“You have the right to perform your duties, "
+            "but not to the fruits of your actions.”\n"
+            "— Bhagavad Gita 2.47"
+        )
+        label = tk.Label(
+            self.greeting,
+            text=message,
+            justify="center",
+            wraplength=340,
+            bg="#fff7dc",
+            fg="#5a3517",
+            font=("Segoe UI", 10),
+            padx=16,
+            pady=12,
+        )
+        label.pack(padx=2, pady=2)
+
+        self.root.update_idletasks()
+        self.greeting.update_idletasks()
+        bubble_w = self.greeting.winfo_reqwidth()
+        bubble_h = self.greeting.winfo_reqheight()
+        screen_w = self.root.winfo_screenwidth()
+        screen_h = self.root.winfo_screenheight()
+        root_x = self.root.winfo_x()
+        root_y = self.root.winfo_y()
+        right_x = root_x + self.width + 8
+        bubble_x = right_x if right_x + bubble_w <= screen_w else max(0, root_x - bubble_w - 8)
+        bubble_y = max(0, min(root_y + (self.height - bubble_h) // 2, screen_h - bubble_h))
+        self.greeting.geometry(f"+{bubble_x}+{bubble_y}")
+
+        duration_ms = max(1, int(float(self.settings["startup_greeting_seconds"]) * 1000))
+        self.root.after(duration_ms, self._begin_normal_routine)
+
+    def _begin_normal_routine(self) -> None:
+        if hasattr(self, "greeting") and self.greeting.winfo_exists():
+            self.greeting.destroy()
+        self.started_at = time.monotonic()
+        for activity in ("reading", "mouse", "yoga", "ladoo", "veena", "deep_sleep"):
+            self._schedule_activity(activity, self.started_at)
         self._tick()
 
     def _load_frames(self, folder: str, scale: float) -> list[ImageTk.PhotoImage]:
