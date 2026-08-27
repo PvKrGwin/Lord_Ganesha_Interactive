@@ -11,6 +11,8 @@ A transparent, always-on-top Windows companion based on Praveen's custom My Gane
 
 My Ganesha will start immediately and automatically whenever you sign in to Windows.
 
+At startup, Ganesha displays a greeting based on the PC's local system time (morning, afternoon, or evening) together with a motivating Bhagavad Gita 2.47 message. The welcome remains for about 10 seconds; only then do the normal animation and independent activity clocks begin.
+
 ## Controls
 
 - Left-click My Ganesha: wave and give a clear single-eye wink, then resume the peaceful loop.
