@@ -11,6 +11,8 @@ A transparent, always-on-top Windows companion based on Praveen's custom My Gane
 
 My Ganesha will start immediately and automatically whenever you sign in to Windows.
 
+At startup, Ganesha displays a natural greeting based on the PC's local system time, including early-morning, evening, late-night, and after-midnight greetings. A simple motivating thought is randomly selected from ten Bhagavad Gita verses. The immediately previous thought is excluded, so consecutive launches do not repeat it. The welcome remains for about 18 seconds; only then do the normal animation and independent activity clocks begin.
+
 ## Controls
 
 - Left-click My Ganesha: wave and give a clear single-eye wink, then resume the peaceful loop.
@@ -31,6 +33,8 @@ Special moments now use independent timers:
 - The ladoo moment remains about 8 seconds and occurs every 2¾–3¼ minutes.
 - Every 7–8 minutes he closes his eyes and peacefully plays the veena for about 10.8 seconds, nodding gently while his plucking hand moves rhythmically and his other hand travels along the frets.
 - Every 14½–15½ minutes, the slow sleepy introduction leads to a separate deep-rest scene instead of yoga: the four transition poses last about 2 seconds each, while the third and fourth sleeping poses alternate for about 22 seconds together. He then wakes yawning and stretching and restarts from abhaya-hasta. The complete pillow scene lasts about 30 seconds.
+- Every 8–10 minutes, Ganesha takes a roughly 15-second walk across one quarter of the usable screen, pauses for gentle shoulder and side stretches, then walks back and returns exactly to his saved position.
+- Every 10–12 minutes, a parchment-style `MAHABHARATA` title appears while Vedavyasa calmly dictates and Ganesha listens and writes for about 14.4 seconds.
 
 An activity begins after the current normal pose finishes. If two timers become due together, the oldest waiting activity plays first and the other remains queued.
 
@@ -42,6 +46,7 @@ Edit `settings.json` while the app is closed:
 - `corner`: `top-left`, `top-right`, `bottom-left`, or `bottom-right`.
 - `margin_x` and `margin_y`: distance from the screen edges.
 - `frame_ms`: animation speed; lower is faster.
+- `startup_greeting_seconds`: duration of the system-time greeting; the default is `18` seconds.
 - state loop counts: time spent in each behavior.
 - `reading_loops`: duration of a complete reading moment.
 - `ladoo_loops`: duration of a complete ladoo moment.
@@ -49,9 +54,15 @@ Edit `settings.json` while the app is closed:
 - `sleepy_frame_ms`: speed of the sleepy sequence; `650` keeps its yawning, heavy-eye blinking, nodding, and stretching deliberately slow.
 - `veena_frame_ms` and `veena_loops`: control the tempo and total duration of the veena performance.
 - `mouse_frame_ms` and the mouse pause settings control the slower, slightly randomized mouse visit.
+- `walk_frame_ms` and the walk interval settings control the walking/stretching scene.
+- `mahabharata_frame_ms`, `mahabharata_loops`, and the Mahabharata interval settings control the Vyasa dictation scene.
 - Each activity has `interval_min_seconds` and `interval_max_seconds` settings that control its independent randomized interval.
 
 Run `start_my_ganesha.bat` after saving changes.
+
+## Repair an incomplete installation
+
+If Windows reports that it cannot locate `pyvenv.cfg`, run `install_my_ganesha.bat` again. The installer detects an incomplete private `.venv` environment, rebuilds only that folder, reinstalls Pillow, refreshes the startup shortcut, and launches My Ganesha. Your app settings and saved screen position remain untouched.
 
 ## Disable automatic startup
 

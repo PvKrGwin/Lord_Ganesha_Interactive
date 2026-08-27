@@ -6,6 +6,7 @@ import random
 import sys
 import time
 import tkinter as tk
+from datetime import datetime
 from tkinter import messagebox
 from pathlib import Path
 
@@ -54,6 +55,14 @@ DEFAULTS = {
     "veena_interval_max_seconds": 480,
     "deep_sleep_interval_min_seconds": 870,
     "deep_sleep_interval_max_seconds": 930,
+    "startup_greeting_seconds": 18,
+    "walk_frame_ms": 1500,
+    "mahabharata_frame_ms": 1200,
+    "mahabharata_loops": 2,
+    "walk_interval_min_seconds": 480,
+    "walk_interval_max_seconds": 600,
+    "mahabharata_interval_min_seconds": 600,
+    "mahabharata_interval_max_seconds": 720,
 }
 
 STATE_ROWS = {
@@ -68,6 +77,8 @@ STATE_ROWS = {
     "ladoo": "ladoo",
     "veena": "veena",
     "deep_sleep": "deep_sleep",
+    "walk": "walk",
+    "mahabharata": "mahabharata",
 }
 
 
@@ -121,7 +132,26 @@ class GaneshaCompanion:
             borderwidth=0,
         )
         self.canvas.pack()
+        title_font_size = max(7, round(11 * scale))
+        self.mahabharata_banner = self.canvas.create_rectangle(
+            5,
+            4,
+            self.width - 5,
+            max(22, round(31 * scale)),
+            fill="#fff0c2",
+            outline="#a66a20",
+            width=1,
+            state="hidden",
+        )
         self.item = self.canvas.create_image(self.width // 2, self.height // 2)
+        self.mahabharata_title = self.canvas.create_text(
+            self.width // 2,
+            max(12, round(17 * scale)),
+            text="MAHABHARATA",
+            fill="#7a4318",
+            font=("Segoe UI Semibold", title_font_size),
+            state="hidden",
+        )
 
         self.frames = {
             state: self._load_frames(folder, scale)
@@ -138,12 +168,10 @@ class GaneshaCompanion:
         self.frame_index = 0
         self.wave_requested = False
         self.exit_requested = False
-        self.started_at = time.monotonic()
-        # Independent clocks ensure that frequent reading cannot suppress the
-        # mouse, yoga, or ladoo scenes through a shared random cooldown.
+        self.started_at = None
+        # Activity clocks begin only after the startup blessing has finished,
+        # so the greeting never consumes time from the approved schedules.
         self.next_activity_at = {}
-        for activity in ("reading", "mouse", "yoga", "ladoo", "veena", "deep_sleep"):
-            self._schedule_activity(activity, self.started_at)
         self.pending_after_special = None
         self.drag_start_pointer = None
         self.drag_start_window = None
@@ -151,6 +179,7 @@ class GaneshaCompanion:
         self.mouse_pause_frame = 0
         self.mouse_pause_ms = 0
         self.mouse_pause_used = False
+        self.walk_origin = None
 
         self._place_window()
         self.canvas.bind("<ButtonPress-1>", self._start_drag)
@@ -163,6 +192,97 @@ class GaneshaCompanion:
         self.menu.add_separator()
         self.menu.add_command(label="Exit My Ganesha", command=self._request_exit)
 
+        self._show_startup_greeting()
+
+    def _show_startup_greeting(self) -> None:
+        hour = datetime.now().hour
+        greetings = (
+            (0, 4, ("A peaceful midnight to you", "Still awake? May this quiet night bring you peace")),
+            (4, 6, ("A peaceful early morning to you", "A beautiful new day is beginning")),
+            (6, 12, ("Good morning", "A very good morning to you")),
+            (12, 17, ("Good afternoon", "A bright afternoon to you")),
+            (17, 21, ("Good evening", "A peaceful evening to you")),
+            (21, 24, ("Good night", "Wishing you a calm and peaceful night")),
+        )
+        salutation = next(
+            random.choice(options)
+            for start, end, options in greetings
+            if start <= hour < end
+        )
+
+        gita_thoughts = (
+            ("Focus on your effort, not only on the result.", "Bhagavad Gita 2.47"),
+            ("Stay balanced in success and failure.", "Bhagavad Gita 2.48"),
+            ("True yoga is doing every action with care and skill.", "Bhagavad Gita 2.50"),
+            ("Do your duty sincerely, without being attached to the outcome.", "Bhagavad Gita 3.19"),
+            ("Knowledge brings clarity and purifies the mind.", "Bhagavad Gita 4.38"),
+            ("Lift yourself through your own thoughts and efforts.", "Bhagavad Gita 6.5"),
+            ("Whenever the mind wanders, gently bring it back.", "Bhagavad Gita 6.26"),
+            ("A peaceful person neither troubles others nor is troubled by them.", "Bhagavad Gita 12.15"),
+            ("Your faith shapes the person you become.", "Bhagavad Gita 17.3"),
+            ("Take refuge in the Divine and do not be afraid.", "Bhagavad Gita 18.66"),
+        )
+        previous_quote = int(self.settings.get("last_gita_quote_index", -1))
+        choices = [index for index in range(len(gita_thoughts)) if index != previous_quote]
+        quote_index = random.choice(choices)
+        quote, verse = gita_thoughts[quote_index]
+        self.settings["last_gita_quote_index"] = quote_index
+        try:
+            CONFIG_PATH.write_text(
+                json.dumps(self.settings, indent=2) + "\n", encoding="utf-8"
+            )
+        except OSError:
+            pass
+
+        self.canvas.itemconfigure(self.item, image=self.frames["idle"][0])
+        self.greeting = tk.Toplevel(self.root)
+        self.greeting.overrideredirect(True)
+        self.greeting.attributes("-topmost", True)
+        self.greeting.configure(bg="#6f4a20")
+
+        message = (
+            f"{salutation}, Praveen!\n\n"
+            f"“{quote}”\n"
+            f"— {verse}"
+        )
+        label = tk.Label(
+            self.greeting,
+            text=message,
+            justify="center",
+            wraplength=340,
+            bg="#fff7dc",
+            fg="#5a3517",
+            font=("Segoe UI", 10),
+            padx=16,
+            pady=12,
+        )
+        label.pack(padx=2, pady=2)
+
+        self.root.update_idletasks()
+        self.greeting.update_idletasks()
+        bubble_w = self.greeting.winfo_reqwidth()
+        bubble_h = self.greeting.winfo_reqheight()
+        screen_w = self.root.winfo_screenwidth()
+        screen_h = self.root.winfo_screenheight()
+        root_x = self.root.winfo_x()
+        root_y = self.root.winfo_y()
+        right_x = root_x + self.width + 8
+        bubble_x = right_x if right_x + bubble_w <= screen_w else max(0, root_x - bubble_w - 8)
+        bubble_y = max(0, min(root_y + (self.height - bubble_h) // 2, screen_h - bubble_h))
+        self.greeting.geometry(f"+{bubble_x}+{bubble_y}")
+
+        duration_ms = max(1, int(float(self.settings["startup_greeting_seconds"]) * 1000))
+        self.root.after(duration_ms, self._begin_normal_routine)
+
+    def _begin_normal_routine(self) -> None:
+        if hasattr(self, "greeting") and self.greeting.winfo_exists():
+            self.greeting.destroy()
+        self.started_at = time.monotonic()
+        for activity in (
+            "reading", "mouse", "yoga", "ladoo", "veena", "deep_sleep",
+            "walk", "mahabharata",
+        ):
+            self._schedule_activity(activity, self.started_at)
         self._tick()
 
     def _load_frames(self, folder: str, scale: float) -> list[ImageTk.PhotoImage]:
@@ -270,6 +390,8 @@ class GaneshaCompanion:
                 int(self.settings["mouse_pause_max_ms"]),
             )
             self.mouse_pause_used = False
+        elif state == "walk":
+            self.walk_origin = (self.root.winfo_x(), self.root.winfo_y())
 
     def _advance_cycle(self) -> None:
         self.sequence_index = (self.sequence_index + 1) % len(self.sequence)
@@ -305,6 +427,7 @@ class GaneshaCompanion:
             "reading": int(self.settings["reading_loops"]),
             "ladoo": int(self.settings["ladoo_loops"]),
             "veena": int(self.settings["veena_loops"]),
+            "mahabharata": int(self.settings["mahabharata_loops"]),
         }.get(state, 1)
         self._set_state(state, loops)
         return True
@@ -318,6 +441,23 @@ class GaneshaCompanion:
         current = self.frames[displayed_state]
         displayed_frame = self.frame_index
         self.canvas.itemconfigure(self.item, image=current[displayed_frame])
+        title_state = "normal" if displayed_state == "mahabharata" else "hidden"
+        self.canvas.itemconfigure(self.mahabharata_banner, state=title_state)
+        self.canvas.itemconfigure(self.mahabharata_title, state=title_state)
+
+        if displayed_state == "walk" and self.walk_origin is not None:
+            # Move out for the first half of the scene, then return precisely
+            # to the saved starting point. One quarter of the usable screen is
+            # enough to feel like a journey without losing the companion.
+            progress = displayed_frame / max(1, len(current) - 1)
+            outward = progress * 2 if progress <= 0.5 else (1.0 - progress) * 2
+            screen_w = self.root.winfo_screenwidth()
+            max_travel = max(0, (screen_w - self.width) // 4)
+            direction = 1
+            if self.walk_origin[0] + max_travel > screen_w - self.width:
+                direction = -1
+            x = self.walk_origin[0] + round(direction * max_travel * outward)
+            self.root.geometry(f"+{x}+{self.walk_origin[1]}")
         self.frame_index += 1
 
         if self.frame_index >= len(current):
@@ -325,7 +465,8 @@ class GaneshaCompanion:
             self.loops_remaining -= 1
             if self.loops_remaining <= 0:
                 if self.state in {
-                    "wave", "yoga", "sleepy", "mouse", "reading", "ladoo", "veena", "deep_sleep"
+                    "wave", "yoga", "sleepy", "mouse", "reading", "ladoo", "veena",
+                    "deep_sleep", "walk", "mahabharata"
                 }:
                     if self.state == "wave" and self.exit_requested:
                         self._fade_and_exit()
@@ -337,6 +478,12 @@ class GaneshaCompanion:
                     elif self.state == "deep_sleep":
                         self.sequence_index = 0
                         state, loops = self.sequence[0]
+                        self._set_state(state, loops)
+                    elif self.state == "walk":
+                        if self.walk_origin is not None:
+                            self.root.geometry(f"+{self.walk_origin[0]}+{self.walk_origin[1]}")
+                        self.walk_origin = None
+                        state, loops = self.sequence[self.sequence_index]
                         self._set_state(state, loops)
                     else:
                         state, loops = self.sequence[self.sequence_index]
@@ -362,6 +509,10 @@ class GaneshaCompanion:
             ):
                 delay += self.mouse_pause_ms
                 self.mouse_pause_used = True
+        elif displayed_state == "walk":
+            delay = int(self.settings["walk_frame_ms"])
+        elif displayed_state == "mahabharata":
+            delay = int(self.settings["mahabharata_frame_ms"])
         else:
             delay = int(self.settings["frame_ms"])
         self.root.after(delay, self._tick)

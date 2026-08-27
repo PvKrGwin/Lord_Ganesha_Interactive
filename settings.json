@@ -37,5 +37,13 @@
   "deep_sleep_interval_min_seconds": 870,
   "deep_sleep_interval_max_seconds": 930,
   "position_x": 1402,
-  "position_y": 265
+  "position_y": 265,
+  "startup_greeting_seconds": 18,
+  "walk_frame_ms": 1500,
+  "mahabharata_frame_ms": 1200,
+  "mahabharata_loops": 2,
+  "walk_interval_min_seconds": 480,
+  "walk_interval_max_seconds": 600,
+  "mahabharata_interval_min_seconds": 600,
+  "mahabharata_interval_max_seconds": 720
 }

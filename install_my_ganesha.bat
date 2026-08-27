@@ -28,6 +28,24 @@ if not defined PYTHON_CMD (
 
 if not defined PYTHON_CMD goto :python_missing
 
+set "VENV_NEEDS_REBUILD="
+if exist ".venv" (
+  if not exist ".venv\pyvenv.cfg" set "VENV_NEEDS_REBUILD=1"
+  if not exist ".venv\Scripts\python.exe" set "VENV_NEEDS_REBUILD=1"
+  if not exist ".venv\Scripts\pythonw.exe" set "VENV_NEEDS_REBUILD=1"
+)
+if exist ".venv\Scripts\python.exe" (
+  ".venv\Scripts\python.exe" -c "import sys" >nul 2>nul
+  if errorlevel 1 set "VENV_NEEDS_REBUILD=1"
+)
+
+if defined VENV_NEEDS_REBUILD (
+  echo.
+  echo The existing private Python environment is incomplete and will be rebuilt.
+  rmdir /s /q ".venv"
+  if exist ".venv" goto :install_failed
+)
+
 if not exist ".venv\Scripts\pythonw.exe" %PYTHON_CMD% -m venv .venv
 if errorlevel 1 goto :install_failed
 
