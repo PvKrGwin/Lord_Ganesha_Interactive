@@ -55,6 +55,10 @@ Edit `settings.json` while the app is closed:
 
 Run `start_my_ganesha.bat` after saving changes.
 
+## Repair an incomplete installation
+
+If Windows reports that it cannot locate `pyvenv.cfg`, run `install_my_ganesha.bat` again. The installer detects an incomplete private `.venv` environment, rebuilds only that folder, reinstalls Pillow, refreshes the startup shortcut, and launches My Ganesha. Your app settings and saved screen position remain untouched.
+
 ## Disable automatic startup
 
 Double-click `remove_from_startup.bat`. This only removes the startup shortcut; it preserves the companion and all settings.
