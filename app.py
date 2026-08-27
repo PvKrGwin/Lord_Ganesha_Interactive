@@ -132,7 +132,26 @@ class GaneshaCompanion:
             borderwidth=0,
         )
         self.canvas.pack()
+        title_font_size = max(7, round(11 * scale))
+        self.mahabharata_banner = self.canvas.create_rectangle(
+            5,
+            4,
+            self.width - 5,
+            max(22, round(31 * scale)),
+            fill="#fff0c2",
+            outline="#a66a20",
+            width=1,
+            state="hidden",
+        )
         self.item = self.canvas.create_image(self.width // 2, self.height // 2)
+        self.mahabharata_title = self.canvas.create_text(
+            self.width // 2,
+            max(12, round(17 * scale)),
+            text="MAHABHARATA",
+            fill="#7a4318",
+            font=("Segoe UI Semibold", title_font_size),
+            state="hidden",
+        )
 
         self.frames = {
             state: self._load_frames(folder, scale)
@@ -422,6 +441,9 @@ class GaneshaCompanion:
         current = self.frames[displayed_state]
         displayed_frame = self.frame_index
         self.canvas.itemconfigure(self.item, image=current[displayed_frame])
+        title_state = "normal" if displayed_state == "mahabharata" else "hidden"
+        self.canvas.itemconfigure(self.mahabharata_banner, state=title_state)
+        self.canvas.itemconfigure(self.mahabharata_title, state=title_state)
 
         if displayed_state == "walk" and self.walk_origin is not None:
             # Move out for the first half of the scene, then return precisely
