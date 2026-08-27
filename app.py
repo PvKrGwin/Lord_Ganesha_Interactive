@@ -55,7 +55,14 @@ DEFAULTS = {
     "veena_interval_max_seconds": 480,
     "deep_sleep_interval_min_seconds": 870,
     "deep_sleep_interval_max_seconds": 930,
-    "startup_greeting_seconds": 10,
+    "startup_greeting_seconds": 18,
+    "walk_frame_ms": 1500,
+    "mahabharata_frame_ms": 1200,
+    "mahabharata_loops": 2,
+    "walk_interval_min_seconds": 480,
+    "walk_interval_max_seconds": 600,
+    "mahabharata_interval_min_seconds": 600,
+    "mahabharata_interval_max_seconds": 720,
 }
 
 STATE_ROWS = {
@@ -70,6 +77,8 @@ STATE_ROWS = {
     "ladoo": "ladoo",
     "veena": "veena",
     "deep_sleep": "deep_sleep",
+    "walk": "walk",
+    "mahabharata": "mahabharata",
 }
 
 
@@ -151,6 +160,7 @@ class GaneshaCompanion:
         self.mouse_pause_frame = 0
         self.mouse_pause_ms = 0
         self.mouse_pause_used = False
+        self.walk_origin = None
 
         self._place_window()
         self.canvas.bind("<ButtonPress-1>", self._start_drag)
@@ -249,7 +259,10 @@ class GaneshaCompanion:
         if hasattr(self, "greeting") and self.greeting.winfo_exists():
             self.greeting.destroy()
         self.started_at = time.monotonic()
-        for activity in ("reading", "mouse", "yoga", "ladoo", "veena", "deep_sleep"):
+        for activity in (
+            "reading", "mouse", "yoga", "ladoo", "veena", "deep_sleep",
+            "walk", "mahabharata",
+        ):
             self._schedule_activity(activity, self.started_at)
         self._tick()
 
@@ -358,6 +371,8 @@ class GaneshaCompanion:
                 int(self.settings["mouse_pause_max_ms"]),
             )
             self.mouse_pause_used = False
+        elif state == "walk":
+            self.walk_origin = (self.root.winfo_x(), self.root.winfo_y())
 
     def _advance_cycle(self) -> None:
         self.sequence_index = (self.sequence_index + 1) % len(self.sequence)
@@ -393,6 +408,7 @@ class GaneshaCompanion:
             "reading": int(self.settings["reading_loops"]),
             "ladoo": int(self.settings["ladoo_loops"]),
             "veena": int(self.settings["veena_loops"]),
+            "mahabharata": int(self.settings["mahabharata_loops"]),
         }.get(state, 1)
         self._set_state(state, loops)
         return True
@@ -406,6 +422,20 @@ class GaneshaCompanion:
         current = self.frames[displayed_state]
         displayed_frame = self.frame_index
         self.canvas.itemconfigure(self.item, image=current[displayed_frame])
+
+        if displayed_state == "walk" and self.walk_origin is not None:
+            # Move out for the first half of the scene, then return precisely
+            # to the saved starting point. One quarter of the usable screen is
+            # enough to feel like a journey without losing the companion.
+            progress = displayed_frame / max(1, len(current) - 1)
+            outward = progress * 2 if progress <= 0.5 else (1.0 - progress) * 2
+            screen_w = self.root.winfo_screenwidth()
+            max_travel = max(0, (screen_w - self.width) // 4)
+            direction = 1
+            if self.walk_origin[0] + max_travel > screen_w - self.width:
+                direction = -1
+            x = self.walk_origin[0] + round(direction * max_travel * outward)
+            self.root.geometry(f"+{x}+{self.walk_origin[1]}")
         self.frame_index += 1
 
         if self.frame_index >= len(current):
@@ -413,7 +443,8 @@ class GaneshaCompanion:
             self.loops_remaining -= 1
             if self.loops_remaining <= 0:
                 if self.state in {
-                    "wave", "yoga", "sleepy", "mouse", "reading", "ladoo", "veena", "deep_sleep"
+                    "wave", "yoga", "sleepy", "mouse", "reading", "ladoo", "veena",
+                    "deep_sleep", "walk", "mahabharata"
                 }:
                     if self.state == "wave" and self.exit_requested:
                         self._fade_and_exit()
@@ -425,6 +456,12 @@ class GaneshaCompanion:
                     elif self.state == "deep_sleep":
                         self.sequence_index = 0
                         state, loops = self.sequence[0]
+                        self._set_state(state, loops)
+                    elif self.state == "walk":
+                        if self.walk_origin is not None:
+                            self.root.geometry(f"+{self.walk_origin[0]}+{self.walk_origin[1]}")
+                        self.walk_origin = None
+                        state, loops = self.sequence[self.sequence_index]
                         self._set_state(state, loops)
                     else:
                         state, loops = self.sequence[self.sequence_index]
@@ -450,6 +487,10 @@ class GaneshaCompanion:
             ):
                 delay += self.mouse_pause_ms
                 self.mouse_pause_used = True
+        elif displayed_state == "walk":
+            delay = int(self.settings["walk_frame_ms"])
+        elif displayed_state == "mahabharata":
+            delay = int(self.settings["mahabharata_frame_ms"])
         else:
             delay = int(self.settings["frame_ms"])
         self.root.after(delay, self._tick)
