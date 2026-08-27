@@ -34,7 +34,7 @@ Special moments now use independent timers:
 - Every 7–8 minutes he closes his eyes and peacefully plays the veena for about 10.8 seconds, nodding gently while his plucking hand moves rhythmically and his other hand travels along the frets.
 - Every 14½–15½ minutes, the slow sleepy introduction leads to a separate deep-rest scene instead of yoga: the four transition poses last about 2 seconds each, while the third and fourth sleeping poses alternate for about 22 seconds together. He then wakes yawning and stretching and restarts from abhaya-hasta. The complete pillow scene lasts about 30 seconds.
 - Every 8–10 minutes, Ganesha takes a roughly 15-second walk across one quarter of the usable screen, pauses for gentle shoulder and side stretches, then walks back and returns exactly to his saved position.
-- Every 10–12 minutes, Vedavyasa appears and calmly dictates while Ganesha listens and writes the Mahabharata for about 14.4 seconds.
+- Every 10–12 minutes, a parchment-style `MAHABHARATA` title appears while Vedavyasa calmly dictates and Ganesha listens and writes for about 14.4 seconds.
 
 An activity begins after the current normal pose finishes. If two timers become due together, the oldest waiting activity plays first and the other remains queued.
 
