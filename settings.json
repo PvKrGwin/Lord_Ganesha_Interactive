@@ -37,5 +37,6 @@
   "deep_sleep_interval_min_seconds": 870,
   "deep_sleep_interval_max_seconds": 930,
   "position_x": 1402,
-  "position_y": 265
+  "position_y": 265,
+  "startup_greeting_seconds": 10
 }
