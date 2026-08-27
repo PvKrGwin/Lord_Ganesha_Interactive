@@ -167,12 +167,43 @@ class GaneshaCompanion:
 
     def _show_startup_greeting(self) -> None:
         hour = datetime.now().hour
-        if hour < 12:
-            salutation = "Good morning"
-        elif hour < 17:
-            salutation = "Good afternoon"
-        else:
-            salutation = "Good evening"
+        greetings = (
+            (0, 4, ("A peaceful midnight to you", "Still awake? May this quiet night bring you peace")),
+            (4, 6, ("A peaceful early morning to you", "A beautiful new day is beginning")),
+            (6, 12, ("Good morning", "A very good morning to you")),
+            (12, 17, ("Good afternoon", "A bright afternoon to you")),
+            (17, 21, ("Good evening", "A peaceful evening to you")),
+            (21, 24, ("Good night", "Wishing you a calm and peaceful night")),
+        )
+        salutation = next(
+            random.choice(options)
+            for start, end, options in greetings
+            if start <= hour < end
+        )
+
+        gita_thoughts = (
+            ("Focus on your effort, not only on the result.", "Bhagavad Gita 2.47"),
+            ("Stay balanced in success and failure.", "Bhagavad Gita 2.48"),
+            ("True yoga is doing every action with care and skill.", "Bhagavad Gita 2.50"),
+            ("Do your duty sincerely, without being attached to the outcome.", "Bhagavad Gita 3.19"),
+            ("Knowledge brings clarity and purifies the mind.", "Bhagavad Gita 4.38"),
+            ("Lift yourself through your own thoughts and efforts.", "Bhagavad Gita 6.5"),
+            ("Whenever the mind wanders, gently bring it back.", "Bhagavad Gita 6.26"),
+            ("A peaceful person neither troubles others nor is troubled by them.", "Bhagavad Gita 12.15"),
+            ("Your faith shapes the person you become.", "Bhagavad Gita 17.3"),
+            ("Take refuge in the Divine and do not be afraid.", "Bhagavad Gita 18.66"),
+        )
+        previous_quote = int(self.settings.get("last_gita_quote_index", -1))
+        choices = [index for index in range(len(gita_thoughts)) if index != previous_quote]
+        quote_index = random.choice(choices)
+        quote, verse = gita_thoughts[quote_index]
+        self.settings["last_gita_quote_index"] = quote_index
+        try:
+            CONFIG_PATH.write_text(
+                json.dumps(self.settings, indent=2) + "\n", encoding="utf-8"
+            )
+        except OSError:
+            pass
 
         self.canvas.itemconfigure(self.item, image=self.frames["idle"][0])
         self.greeting = tk.Toplevel(self.root)
@@ -182,9 +213,8 @@ class GaneshaCompanion:
 
         message = (
             f"{salutation}, Praveen!\n\n"
-            "“You have the right to perform your duties, "
-            "but not to the fruits of your actions.”\n"
-            "— Bhagavad Gita 2.47"
+            f"“{quote}”\n"
+            f"— {verse}"
         )
         label = tk.Label(
             self.greeting,
